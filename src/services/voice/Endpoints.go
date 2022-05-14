@@ -9,6 +9,15 @@ import (
 type Endpoints struct {
 	InitMetadata endpoint.Endpoint
 	SaveAudio    endpoint.Endpoint
+	GetStats     endpoint.Endpoint
+}
+
+func makeGetStatsEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(GenericRequest)
+		response, err := s.GetStats(ctx, req)
+		return response, err
+	}
 }
 
 func makeInitMetadataEndpoint(s Service) endpoint.Endpoint {
@@ -31,5 +40,6 @@ func MakeEndpoints(s Service) Endpoints {
 	return Endpoints{
 		InitMetadata: makeInitMetadataEndpoint(s),
 		SaveAudio:    makeSaveAudioEndpoint(s),
+		GetStats:     makeGetStatsEndpoint(s),
 	}
 }

@@ -14,6 +14,13 @@ type GenericRequest struct {
 	RequestId string `json:"request_id,omitempty" gorm:"-"`
 }
 
+type StatsResponse struct {
+	Count1Hour  int `json:"count_1_hour"`
+	Count2Hour  int `json:"count_2_hour"`
+	Count24Hour int `json:"count_24_hour"`
+	Count       int `json:"count_total"`
+}
+
 type VoiceFile struct {
 	RequestId     string         `json:"request_id,omitempty" gorm:"-"`
 	FileId        string         `json:"file_id,omitempty"`

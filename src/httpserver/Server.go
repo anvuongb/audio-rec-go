@@ -55,6 +55,13 @@ func NewHTTPServer(ctx context.Context, logger log.Logger, useCORS bool, voiceEn
 	// r.Use(commonMiddleware)
 	r.Methods("GET", "OPTIONS").Path("/api/version").HandlerFunc(version)
 
+	r.Methods("GET", "OPTIONS").Path("/api/getStats").Handler(httptransport.NewServer(
+		voiceEndpoints.GetStats,
+		voice.DecodeGenericRequest,
+		common.EncodeResponse,
+		options...,
+	))
+
 	r.Methods("GET", "OPTIONS").Path("/api/initMetadata").Handler(httptransport.NewServer(
 		voiceEndpoints.InitMetadata,
 		voice.DecodeGenericRequest,

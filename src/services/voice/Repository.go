@@ -20,6 +20,7 @@ type repo struct {
 type Repository interface {
 	InitMetadata(request GenericRequest) (VoiceMetadata, error)
 	SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error
+	GetStats() (int, int, int, int)
 }
 
 func NewRepository(db *gorm.DB, logger log.Logger) Repository {
@@ -70,6 +71,26 @@ func RandStringBytesMaskImprSrcSB(n int) string {
 	return sb.String()
 }
 
+func (repo repo) GetStats() (int, int, int, int) {
+	// query := `
+	// 	SELECT count(*) FROM %s WHERE datetime(created_at) >= datetime('now', '-%d hours')
+	// `
+	time.Now().Add(-1 * time.Hour)
+	var count1hour int64
+	repo.db.Model(&VoiceMetadata{}).Where("nomasked_file_uploaded = ?", 1).Where("masked_file_uploaded = ?", 1).Where("created_at >= ?", time.Now().Add(-1*time.Hour)).Count(&count1hour)
+
+	var count3hour int64
+	repo.db.Model(&VoiceMetadata{}).Where("nomasked_file_uploaded = ?", 1).Where("masked_file_uploaded = ?", 1).Where("created_at >= ?", time.Now().Add(-3*time.Hour)).Count(&count3hour)
+
+	var count24hour int64
+	repo.db.Model(&VoiceMetadata{}).Where("nomasked_file_uploaded = ?", 1).Where("masked_file_uploaded = ?", 1).Where("created_at >= ?", time.Now().Add(-24*time.Hour)).Count(&count24hour)
+
+	var count int64
+	repo.db.Model(&VoiceMetadata{}).Where("nomasked_file_uploaded = ?", 1).Where("masked_file_uploaded = ?", 1).Count(&count)
+
+	return int(count1hour), int(count3hour), int(count24hour), int(count)
+}
+
 func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error {
 	logger := log.With(repo.logger, "method", "SaveAudio", "request_id", requestId)
 
@@ -106,6 +127,7 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
+		repo.db.Model(&VoiceMetadata{}).Where("file_id = ?", fileId).Update("masked_file_uploaded", 1)
 	} else {
 		file, err := os.OpenFile(
 			filepathNoMask,
@@ -122,6 +144,7 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
+		repo.db.Model(&VoiceMetadata{}).Where("file_id = ?", fileId).Update("nomasked_file_uploaded", 1)
 	}
 	return nil
 }
@@ -136,11 +159,13 @@ func (repo repo) InitMetadata(request GenericRequest) (VoiceMetadata, error) {
 
 	// create record
 	v := VoiceMetadata{
-		RequestId:      request.RequestId,
-		FileId:         fileId,
-		FilepathMask:   "data/recordings/" + fileId + "_mask.wav",
-		FilepathNoMask: "data/recordings/" + fileId + "_no_mask.wav",
-		GeneratedText:  sentences[rand.Intn(10)],
+		RequestId:            request.RequestId,
+		FileId:               fileId,
+		FilepathMask:         "data/recordings/" + fileId + "_mask.wav",
+		FilepathNoMask:       "data/recordings/" + fileId + "_no_mask.wav",
+		GeneratedText:        sentences[rand.Intn(10)],
+		MaskedFileUploaded:   0,
+		NomaskedFileUploaded: 0,
 	}
 
 	// write to db

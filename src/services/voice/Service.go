@@ -13,6 +13,7 @@ import (
 type Service interface {
 	InitMetadata(ctx context.Context, request GenericRequest) (GenericResponse, error)
 	SaveAudio(ctx context.Context, request VoiceFile) (GenericResponse, error)
+	GetStats(ctx context.Context, request GenericRequest) (StatsResponse, error)
 }
 
 type service struct {
@@ -53,5 +54,11 @@ func (s service) SaveAudio(ctx context.Context, request VoiceFile) (GenericRespo
 		level.Error(logger).Log("err", err.Error())
 		return GenericResponse{RequestId: request.RequestId, ResultCode: -1, ResultMessage: err.Error()}, nil
 	}
+
 	return GenericResponse{RequestId: request.RequestId, ResultCode: 1, ResultMessage: "OK"}, nil
+}
+
+func (s service) GetStats(ctx context.Context, request GenericRequest) (StatsResponse, error) {
+	c1, c2, c3, c4 := s.repository.GetStats()
+	return StatsResponse{Count1Hour: c1, Count2Hour: c2, Count24Hour: c3, Count: c4}, nil
 }
