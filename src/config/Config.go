@@ -10,18 +10,8 @@ import (
 
 var GRPCTimeOut int = 10
 var GlobalConfig Config
-var VoiceMatchThreshold float32 = 0.6
 
 const MaxVoiceLength = 6 // secconds
-const UserTokenMaxUsageCount = 1000
-const UserTokenMaxVoiceLoginCount = 3
-const UserTokenMaxFaceLoginCount = 3
-
-const UserAccountLockTimeout = 1
-
-const MaxVectorRecordsPerUser = 10
-
-const FaceMultipleSamplesCount = 5 // must be odd, n-1 login samples AND 1 mfa sample
 
 const DateLayout = "02-Jan-06 15:04:05"
 const QueryDateLayout = "02-01-2006"
