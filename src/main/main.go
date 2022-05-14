@@ -28,7 +28,7 @@ func main() {
 	logger = log.NewSyncLogger(logger)
 	logger = log.With(
 		logger,
-		"service", "biometrics",
+		"service", "voice",
 		"time:", log.DefaultTimestampUTC,
 		"caller", log.DefaultCaller,
 	)

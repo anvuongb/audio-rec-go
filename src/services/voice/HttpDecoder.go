@@ -27,13 +27,27 @@ func DecodeGenericRequest(_ context.Context, r *http.Request) (interface{}, erro
 func DecodeSaveAudioRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req VoiceFile
 
-	err := json.NewDecoder(r.Body).Decode(&req)
-	if err != nil {
-		return nil, err
+	file, _, err := r.FormFile("file")
+	if err == nil {
+		req.File = file
 	}
+
+	req.FileId = r.FormValue("file_id")
+	req.RequestId = r.FormValue("request_id")
+	req.GeneratedText = r.FormValue("generated_text")
+
 	soundRate, err := strconv.Atoi(r.FormValue("sound_rate"))
 	if err == nil {
 		req.SoundRate = int32(soundRate)
+	}
+
+	masked, err := strconv.Atoi(r.FormValue("masked"))
+	if err == nil {
+		if masked == 0 {
+			req.Masked = false
+		} else {
+			req.Masked = true
+		}
 	}
 	return req, nil
 

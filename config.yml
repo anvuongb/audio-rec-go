@@ -1,11 +1,11 @@
-version: "v1.2.59"
+version: "v0.1"
 db:
   host: "103.245.249.66"
   port: "8567"
   username: "root"
   password: "trueid@vng"
-  database: "osu_voice.db"
+  database: "data/osu_voice.db"
 
 http:
   port: "8580"
-  cors: false
+  cors: true

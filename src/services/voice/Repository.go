@@ -1,9 +1,7 @@
 package voice
 
 import (
-	"bytes"
 	"fmt"
-	"io"
 	"math/rand"
 	"os"
 	"strings"
@@ -21,7 +19,7 @@ type repo struct {
 
 type Repository interface {
 	InitMetadata(request GenericRequest) (VoiceMetadata, error)
-	SaveAudio(request VoiceFile) error
+	SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error
 }
 
 func NewRepository(db *gorm.DB, logger log.Logger) Repository {
@@ -72,13 +70,13 @@ func RandStringBytesMaskImprSrcSB(n int) string {
 	return sb.String()
 }
 
-func (repo repo) SaveAudio(request VoiceFile) error {
-	logger := log.With(repo.logger, "method", "SaveAudio", "request_id", request.RequestId)
+func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error {
+	logger := log.With(repo.logger, "method", "SaveAudio", "request_id", requestId)
 
 	// get filepath from db
 	var v []VoiceMetadata
 	tx := repo.db.Table(VoiceMetadataTable)
-	tx = tx.Where("file_id = ?", request.FileId)
+	tx = tx.Where("file_id = ?", fileId)
 	err := tx.Find(&v).Error
 	if err != nil {
 		level.Error(logger).Log("err", err.Error())
@@ -92,15 +90,7 @@ func (repo repo) SaveAudio(request VoiceFile) error {
 	filepathMask := v[0].FilepathMask
 	filepathNoMask := v[0].FilepathNoMask
 
-	voiceBuffer := bytes.NewBuffer(nil)
-	if _, err := io.Copy(voiceBuffer, request.File); err != nil {
-		level.Error(logger).Log("error", err)
-		return fmt.Errorf("failed decoding voice")
-	}
-
-	voiceDecode := voiceBuffer.Bytes()
-
-	if request.Masked {
+	if masked {
 		file, err := os.OpenFile(
 			filepathMask,
 			os.O_WRONLY|os.O_TRUNC|os.O_CREATE,

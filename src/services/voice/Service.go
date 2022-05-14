@@ -1,7 +1,10 @@
 package voice
 
 import (
+	"bytes"
 	"context"
+	"fmt"
+	"io"
 
 	"github.com/go-kit/kit/log"
 	"github.com/go-kit/log/level"
@@ -36,7 +39,16 @@ func (s service) InitMetadata(ctx context.Context, request GenericRequest) (Gene
 
 func (s service) SaveAudio(ctx context.Context, request VoiceFile) (GenericResponse, error) {
 	logger := log.With(s.logger, "method", "SaveAudio", "request_id", request.RequestId)
-	err := s.repository.SaveAudio(request)
+	// level.Error(logger).Log("file", request.File)
+	voiceBuffer := bytes.NewBuffer(nil)
+	if _, err := io.Copy(voiceBuffer, request.File); err != nil {
+		level.Error(logger).Log("error", err)
+		return GenericResponse{}, fmt.Errorf("failed decoding voice")
+	}
+
+	voiceDecode := voiceBuffer.Bytes()
+
+	err := s.repository.SaveAudio(request.RequestId, request.FileId, voiceDecode, request.Masked)
 	if err != nil {
 		level.Error(logger).Log("err", err.Error())
 		return GenericResponse{RequestId: request.RequestId, ResultCode: -1, ResultMessage: err.Error()}, nil
