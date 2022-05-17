@@ -2,6 +2,7 @@ package voice
 
 import (
 	"fmt"
+	"io/ioutil"
 	"math/rand"
 	"os"
 	"strings"
@@ -21,6 +22,8 @@ type Repository interface {
 	InitMetadata(request GenericRequest) (VoiceMetadata, error)
 	SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error
 	GetStats() (int, int, int, int)
+	GetVoiceFile(fileId string, masked bool) (VoiceFile, error)
+	GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error)
 }
 
 func NewRepository(db *gorm.DB, logger log.Logger) Repository {
@@ -89,6 +92,101 @@ func (repo repo) GetStats() (int, int, int, int) {
 	repo.db.Model(&VoiceMetadata{}).Where("nomasked_file_uploaded = ?", 1).Where("masked_file_uploaded = ?", 1).Count(&count)
 
 	return int(count1hour), int(count3hour), int(count24hour), int(count)
+}
+
+func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error) {
+	logger := log.With(repo.logger, "method", "GetVoiceRecords", "request_id", request.RequestId)
+
+	limit := 0
+	if request.Limit <= 0 || request.Limit >= 200 {
+		limit = 200
+	}
+
+	pageNumber := 0
+	recordsPerPage := 0
+	if request.PageNumber > 0 {
+		pageNumber = request.PageNumber
+		if request.RecordsPerPage > 0 {
+			recordsPerPage = request.RecordsPerPage
+		} else {
+			recordsPerPage = 10
+		}
+	}
+
+	var v []VoiceMetadata
+	tx := repo.db.Table(VoiceMetadataTable)
+
+	if pageNumber > 0 {
+		tx = tx.Limit(recordsPerPage).Offset((pageNumber - 1) * recordsPerPage).Order("created_at desc")
+	} else {
+		tx = tx.Limit(limit).Order("created_at desc")
+	}
+
+	err := tx.Find(&v).Error
+	if err != nil {
+		level.Error(logger).Log("err", err.Error())
+		return []VoiceMetadata{}, err
+	}
+
+	return v, nil
+}
+
+func (repo repo) GetAudioByFilepath(filepath string) ([]byte, error) {
+	logger := log.With(repo.logger, "method", "SaveAudio", "filepath", filepath)
+	audio, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		level.Error(logger).Log("err", err.Error())
+		return nil, err
+	}
+	return audio, nil
+}
+
+func (repo repo) GetVoiceFile(fileId string, masked bool) (VoiceFile, error) {
+	logger := log.With(repo.logger, "method", "CheckIfAudioExists", "file_id", fileId)
+	var v []VoiceMetadata
+	tx := repo.db.Table(VoiceMetadataTable)
+	tx = tx.Where("file_id = ?", fileId)
+	if masked {
+		tx = tx.Where("masked_file_uploaded = ?", 1)
+	} else {
+		tx = tx.Where("nomasked_file_uploaded = ?", 1)
+	}
+	err := tx.Find(&v).Error
+	if err != nil {
+		level.Error(logger).Log("err", err.Error())
+		return VoiceFile{}, err
+	}
+	if len(v) != 1 {
+		err := fmt.Errorf("found %d matches file_id, must be 1", len(v))
+		level.Error(logger).Log("err", err.Error())
+		return VoiceFile{}, err
+	}
+	var audio []byte
+	if masked {
+		audio, err = repo.GetAudioByFilepath(v[0].FilepathMask)
+		if err != nil {
+			level.Error(logger).Log("err", err.Error())
+			return VoiceFile{}, err
+		}
+	} else {
+		audio, err = repo.GetAudioByFilepath(v[0].FilepathNoMask)
+		if err != nil {
+			level.Error(logger).Log("err", err.Error())
+			return VoiceFile{}, err
+		}
+	}
+
+	vf := VoiceFile{
+		RequestId:     v[0].RequestId,
+		FileId:        v[0].FileId,
+		GeneratedText: v[0].GeneratedText,
+		Masked:        masked,
+		AudioByte:     audio,
+		ResultCode:    1,
+		ResultMessage: "OK",
+	}
+
+	return vf, nil
 }
 
 func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error {

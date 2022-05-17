@@ -7,9 +7,36 @@ import (
 )
 
 type Endpoints struct {
-	InitMetadata endpoint.Endpoint
-	SaveAudio    endpoint.Endpoint
-	GetStats     endpoint.Endpoint
+	InitMetadata         endpoint.Endpoint
+	SaveAudio            endpoint.Endpoint
+	GetStats             endpoint.Endpoint
+	GetAudioByFileIdByte endpoint.Endpoint
+	GetAudioByFileId     endpoint.Endpoint
+	GetVoiceRecords      endpoint.Endpoint
+}
+
+func makeGetVoiceRecordsEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(GenericRequest)
+		response, err := s.GetVoiceRecords(ctx, req)
+		return response, err
+	}
+}
+
+func makeGetAudioByFileIdEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(GenericRequest)
+		response, err := s.GetAudioByFileId(ctx, req)
+		return response, err
+	}
+}
+
+func makeGetAudioByFileIdByteEndpoint(s Service) endpoint.Endpoint {
+	return func(ctx context.Context, request interface{}) (interface{}, error) {
+		req := request.(GenericRequest)
+		response, err := s.GetAudioByFileIdByte(ctx, req)
+		return response, err
+	}
 }
 
 func makeGetStatsEndpoint(s Service) endpoint.Endpoint {
@@ -38,8 +65,11 @@ func makeSaveAudioEndpoint(s Service) endpoint.Endpoint {
 
 func MakeEndpoints(s Service) Endpoints {
 	return Endpoints{
-		InitMetadata: makeInitMetadataEndpoint(s),
-		SaveAudio:    makeSaveAudioEndpoint(s),
-		GetStats:     makeGetStatsEndpoint(s),
+		InitMetadata:         makeInitMetadataEndpoint(s),
+		SaveAudio:            makeSaveAudioEndpoint(s),
+		GetStats:             makeGetStatsEndpoint(s),
+		GetAudioByFileIdByte: makeGetAudioByFileIdByteEndpoint(s),
+		GetAudioByFileId:     makeGetAudioByFileIdEndpoint(s),
+		GetVoiceRecords:      makeGetVoiceRecordsEndpoint(s),
 	}
 }

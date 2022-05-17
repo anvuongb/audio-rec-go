@@ -6,12 +6,33 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 func DecodeGenericRequest(_ context.Context, r *http.Request) (interface{}, error) {
 	var req GenericRequest
 	if r.Method == http.MethodGet {
 		req.RequestId = r.URL.Query().Get("request_id")
+		req.FileId = r.URL.Query().Get("file_id")
+		req.Masked = strings.ToLower(r.URL.Query().Get("masked")) == "true"
+
+		pageNumber, err := strconv.Atoi(r.URL.Query().Get("page_number"))
+		if err != nil {
+			pageNumber = 0
+		}
+		req.PageNumber = pageNumber
+
+		recordsPerPage, err := strconv.Atoi(r.URL.Query().Get("records_per_page"))
+		if err != nil {
+			recordsPerPage = 0
+		}
+		req.RecordsPerPage = recordsPerPage
+
+		limit, err := strconv.Atoi(r.URL.Query().Get("limit"))
+		if err != nil {
+			limit = 0
+		}
+		req.Limit = limit
 		return req, nil
 	}
 	if r.Method == http.MethodPost {
