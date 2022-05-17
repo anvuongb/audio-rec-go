@@ -1,6 +1,7 @@
 package voice
 
 import (
+	"audio-rec-go/src/config"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -116,6 +117,14 @@ func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error
 	var v []VoiceMetadata
 	tx := repo.db.Table(VoiceMetadataTable)
 
+	// if input file_id, perform search
+	if request.FileId != "" {
+		tx = tx.Where("file_id = ?", request.FileId)
+	}
+
+	// only cares about records with at least 1 audio
+	tx = tx.Where("nomasked_file_uploaded = ?", 1)
+
 	if pageNumber > 0 {
 		tx = tx.Limit(recordsPerPage).Offset((pageNumber - 1) * recordsPerPage).Order("created_at desc")
 	} else {
@@ -126,6 +135,11 @@ func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error
 	if err != nil {
 		level.Error(logger).Log("err", err.Error())
 		return []VoiceMetadata{}, err
+	}
+
+	// subtract 14 hours, convert VN to Corvallis
+	for i := range v {
+		v[i].CreatedAtStr = v[i].CreatedAt.Add(-14 * time.Hour).Format(config.DateLayout)
 	}
 
 	return v, nil

@@ -17,6 +17,7 @@ type VoiceMetadata struct {
 	MaskedFileUploaded   int       `json:"masked_file_uploaded"`
 	NomaskedFileUploaded int       `json:"nomasked_file_uploaded"`
 	CreatedAt            time.Time `json:"created_at"`
+	CreatedAtStr         string    `json:"created_at_str" gorm:"-"`
 	UpdatedAt            time.Time `json:"updated_at"`
 }
 
