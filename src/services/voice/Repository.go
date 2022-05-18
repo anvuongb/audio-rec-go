@@ -283,7 +283,8 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
-		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Update("masked_file_uploaded", 1).Error
+		// update country at first submission
+		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Updates(VoiceMetadata{MaskedFileUploaded: 1, Country: country, MaskType: maskType, Gender: gender}).Error
 		if err != nil {
 			level.Error(logger).Log("err", err.Error())
 			return err
@@ -304,8 +305,7 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
-		// update country at first submission
-		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Updates(VoiceMetadata{NomaskedFileUploaded: 1, Country: country, MaskType: maskType, Gender: gender}).Error
+		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Update("nomasked_file_uploaded", 1).Error
 		if err != nil {
 			level.Error(logger).Log("err", err.Error())
 			return err

@@ -1,4 +1,4 @@
-version: "v0.6"
+version: "v1"
 db:
   host: "103.245.249.66"
   port: "8567"

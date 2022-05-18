@@ -13,7 +13,7 @@ FROM alpine:3.8
 RUN apk add --no-cache --update ca-certificates tzdata curl
 RUN apk add --no-cache git make build-base
 RUN cp /usr/share/zoneinfo/Asia/Ho_Chi_Minh /etc/localtime
-RUN echo "Asia/Ho_Chi_Minh" >  /etc/timezone
+RUN echo "America/Edmonton" >  /etc/timezone
 COPY --from=builder /biometrics/src/main/server  /server
 COPY ./config.yml  /config.yml
 
