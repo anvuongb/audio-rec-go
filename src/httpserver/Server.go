@@ -69,6 +69,13 @@ func NewHTTPServer(ctx context.Context, logger log.Logger, useCORS bool, voiceEn
 		options...,
 	))
 
+	r.Methods("GET", "OPTIONS").Path("/api/getAudioRaw/{file}").Handler(httptransport.NewServer(
+		voiceEndpoints.GetAudioByFileIdByte,
+		voice.DecodeGenericRequestAudio,
+		voice.EncodeFileAudioResponse,
+		options...,
+	))
+
 	r.Methods("GET", "OPTIONS").Path("/api/getAudioDetails").Handler(httptransport.NewServer(
 		voiceEndpoints.GetAudioByFileId,
 		voice.DecodeGenericRequest,
