@@ -57,6 +57,15 @@ func DecodeSaveAudioRequest(_ context.Context, r *http.Request) (interface{}, er
 	req.RequestId = r.FormValue("request_id")
 	req.GeneratedText = r.FormValue("generated_text")
 
+	if r.FormValue("gender") != "" {
+		req.Gender = r.FormValue("gender")
+	}
+	if r.FormValue("country") != "" {
+		req.Country = r.FormValue("country")
+	}
+	if r.FormValue("mask_type") != "" {
+		req.MaskType = r.FormValue("mask_type")
+	}
 	soundRate, err := strconv.Atoi(r.FormValue("sound_rate"))
 	if err == nil {
 		req.SoundRate = int32(soundRate)

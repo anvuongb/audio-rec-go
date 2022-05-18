@@ -38,7 +38,11 @@ type VoiceFile struct {
 	GeneratedText string         `json:"generated_text,omitempty"`
 	SoundRate     int32          `json:"sound_rate,omitempty"`
 	Masked        bool           `json:"masked,omitempty"`
+	MaskType      string         `json:"mask_type,omitempty"`
+	Country       string         `json:"country,omitempty"`
+	Gender        string         `json:"gender,omitempty"`
 	AudioByte     []byte         `json:"audio_byte,omitempty"`
 	ResultCode    int            `json:"result_code,omitempty"`
 	ResultMessage string         `json:"result_message,omitempty"`
+	CreatedAtStr  string         `json:"created_at_str,omitempty"`
 }

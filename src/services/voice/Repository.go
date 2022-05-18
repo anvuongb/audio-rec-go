@@ -1,6 +1,7 @@
 package voice
 
 import (
+	"audio-rec-go/src/config"
 	"fmt"
 	"io/ioutil"
 	"math/rand"
@@ -20,7 +21,7 @@ type repo struct {
 
 type Repository interface {
 	InitMetadata(request GenericRequest) (VoiceMetadata, error)
-	SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error
+	SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool, country string, gender string, maskType string) error
 	GetStats() (int, int, int, int)
 	GetVoiceFile(fileId string, masked bool) (VoiceFile, error)
 	GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error)
@@ -115,6 +116,7 @@ func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error
 
 	var v []VoiceMetadata
 	tx := repo.db.Table(VoiceMetadataTable)
+	tx = tx.Where("nomasked_file_uploaded = ?", 1)
 
 	if pageNumber > 0 {
 		tx = tx.Limit(recordsPerPage).Offset((pageNumber - 1) * recordsPerPage).Order("created_at desc")
@@ -126,6 +128,9 @@ func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error
 	if err != nil {
 		level.Error(logger).Log("err", err.Error())
 		return []VoiceMetadata{}, err
+	}
+	for i := range v {
+		v[i].CreatedAtStr = v[i].CreatedAt.Add(-14 * time.Hour).Format(config.DateLayout)
 	}
 
 	return v, nil
@@ -175,7 +180,6 @@ func (repo repo) GetVoiceFile(fileId string, masked bool) (VoiceFile, error) {
 			return VoiceFile{}, err
 		}
 	}
-
 	vf := VoiceFile{
 		RequestId:     v[0].RequestId,
 		FileId:        v[0].FileId,
@@ -184,12 +188,16 @@ func (repo repo) GetVoiceFile(fileId string, masked bool) (VoiceFile, error) {
 		AudioByte:     audio,
 		ResultCode:    1,
 		ResultMessage: "OK",
+		MaskType:      v[0].MaskType,
+		Country:       v[0].Country,
+		Gender:        v[0].Gender,
+		CreatedAtStr:  v[0].CreatedAt.Add(-14 * time.Hour).Format(config.DateLayout),
 	}
 
 	return vf, nil
 }
 
-func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool) error {
+func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, masked bool, country string, gender string, maskType string) error {
 	logger := log.With(repo.logger, "method", "SaveAudio", "request_id", requestId)
 
 	// get filepath from db
@@ -225,7 +233,11 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
-		repo.db.Model(&VoiceMetadata{}).Where("file_id = ?", fileId).Update("masked_file_uploaded", 1)
+		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Update("masked_file_uploaded", 1).Error
+		if err != nil {
+			level.Error(logger).Log("err", err.Error())
+			return err
+		}
 	} else {
 		file, err := os.OpenFile(
 			filepathNoMask,
@@ -242,7 +254,12 @@ func (repo repo) SaveAudio(requestId string, fileId string, voiceDecode []byte, 
 			level.Error(logger).Log("err", err.Error())
 			return err
 		}
-		repo.db.Model(&VoiceMetadata{}).Where("file_id = ?", fileId).Update("nomasked_file_uploaded", 1)
+		// update country at first submission
+		err = repo.db.Model(VoiceMetadata{}).Where("file_id = ?", fileId).Updates(VoiceMetadata{NomaskedFileUploaded: 1, Country: country, MaskType: maskType, Gender: gender}).Error
+		if err != nil {
+			level.Error(logger).Log("err", err.Error())
+			return err
+		}
 	}
 	return nil
 }
@@ -264,6 +281,9 @@ func (repo repo) InitMetadata(request GenericRequest) (VoiceMetadata, error) {
 		GeneratedText:        sentences[rand.Intn(10)],
 		MaskedFileUploaded:   0,
 		NomaskedFileUploaded: 0,
+		MaskType:             "N/A",
+		Country:              "N/A",
+		Gender:               "N/A",
 	}
 
 	// write to db

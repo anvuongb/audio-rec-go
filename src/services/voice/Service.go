@@ -65,7 +65,7 @@ func (s service) SaveAudio(ctx context.Context, request VoiceFile) (GenericRespo
 
 	voiceDecode := voiceBuffer.Bytes()
 
-	err := s.repository.SaveAudio(request.RequestId, request.FileId, voiceDecode, request.Masked)
+	err := s.repository.SaveAudio(request.RequestId, request.FileId, voiceDecode, request.Masked, request.Country, request.Gender, request.MaskType)
 	if err != nil {
 		level.Error(logger).Log("err", err.Error())
 		return GenericResponse{RequestId: request.RequestId, ResultCode: -1, ResultMessage: err.Error()}, nil
