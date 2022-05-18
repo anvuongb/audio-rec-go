@@ -166,7 +166,7 @@ func (repo repo) GetVoiceRecords(request GenericRequest) ([]VoiceMetadata, error
 
 	var v []VoiceMetadata
 	tx := repo.db.Table(VoiceMetadataTable)
-	tx = tx.Where("nomasked_file_uploaded = ?", 1)
+	tx = tx.Where("masked_file_uploaded = ?", 1)
 
 	if pageNumber > 0 {
 		tx = tx.Limit(recordsPerPage).Offset((pageNumber - 1) * recordsPerPage).Order("created_at desc")
